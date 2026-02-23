@@ -14,6 +14,26 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Add this near the top after app.use(express.json())
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'AI NFT Generator API',
+    status: 'online',
+    endpoints: [
+      '/health - GET',
+      '/register - POST',
+      '/login - POST', 
+      '/generate - POST',
+      '/images/:email - GET',
+      '/save_image - POST'
+    ]
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
