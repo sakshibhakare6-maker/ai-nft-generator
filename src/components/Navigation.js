@@ -1,5 +1,5 @@
-import { useState } from "react";
-
+//import { useState } from "react";
+import React from 'react';
 const Navigation = ({ account, setAccount }) => {
 
   const connectWallet = async () => {
