@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <div id="result"></div>
+    <script>
+        const BACKEND_URL = 'https://your-backend.onrender.com'; // REPLACE WITH YOUR URL
+        
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test health endpoint
+                const healthRes = await fetch(`${BACKEND_URL}/health`);
+                const healthData = await healthRes.json();
+                resultDiv.innerHTML += `<p style="color:green">✅ Health check: ${JSON.stringify(healthData)}</p>`;
+                
+                // Test register endpoint
+                const registerRes = await fetch(`${BACKEND_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test',
+                        email: 'test@example.com',
+                        password: 'Test1234'
+                    })
+                });
+                const registerData = await registerRes.json();
+                resultDiv.innerHTML += `<p style="color:green">✅ Register test: ${JSON.stringify(registerData)}</p>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML += `<p style="color:red">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html>
