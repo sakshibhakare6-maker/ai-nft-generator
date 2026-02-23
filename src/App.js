@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { NFTStorage } from 'nft.storage'
 import { ethers } from 'ethers';
