@@ -19,8 +19,8 @@ function App() {
   const [password, setPassword] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
-  const [url, setURL] = useState(null);
-  const [message, setMessage] = useState("");
+  //const [url, setURL] = useState(null);
+  //const [message, setMessage] = useState("");
   const [isWaiting, setIsWaiting] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -79,7 +79,7 @@ useEffect(() => {
 
   useEffect(() => { 
     loadBlockchainData(); 
-  }, []);
+  }, [BACKEND_URL]);
 
   // --------------- REGISTER ----------------
   const handleRegister = async () => {
