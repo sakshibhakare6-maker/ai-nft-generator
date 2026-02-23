@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 //import { useState } from "react";
 import React from 'react';
 const Navigation = ({ account, setAccount }) => {
