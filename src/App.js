@@ -1,229 +1,160 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
-import React from 'react';
 import { useState, useEffect } from 'react';
-import { NFTStorage } from 'nft.storage'
+import { NFTStorage, File } from 'nft.storage'
+import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 import axios from 'axios';
+
+// Components
 import Spinner from 'react-bootstrap/Spinner';
 import Navigation from './components/Navigation';
+
+// ABIs
 import NFT from './abis/NFT.json'
-import contractConfig from './config.json';  // For contract addresses
-import envConfig from './config.js';         // For environment config
+
+// Config
+import config from './config.json';
 
 function App() {
-  const [provider, setProvider] = useState(null);
-  const [account, setAccount] = useState(null);
-  const [nft, setNFT] = useState(null);
+  const [provider, setProvider] = useState(null)
+  const [account, setAccount] = useState(null)
+  const [nft, setNFT] = useState(null)
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState(null);
-  //const [url, setURL] = useState(null);
-  //const [message, setMessage] = useState("");
-  const [isWaiting, setIsWaiting] = useState(false);
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [image, setImage] = useState(null)
+  const [url, setURL] = useState(null)
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isSignup, setIsSignup] = useState(true);
-  const [authMessage, setAuthMessage] = useState("");
-  const [profile, setProfile] = useState(null);
-  const [savedImages, setSavedImages] = useState([]);
+  const [message, setMessage] = useState("")
+  const [isWaiting, setIsWaiting] = useState(false)
 
-  // Get config based on environment - FIXED
-  const currentEnv = process.env.NODE_ENV || 'development';
-  const BACKEND_URL = envConfig[currentEnv]?.BACKEND_URL || 'http://localhost:5000';
-
-  console.log('Current Environment:', currentEnv);
-console.log('Backend URL:', BACKEND_URL);
-
-// Add a test function
-useEffect(() => {
-  const testBackend = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/health`);
-      const data = await res.json();
-      console.log('Backend connection successful:', data);
-    } catch (error) {
-      console.error('Backend connection failed:', error);
-    }
-  };
-  testBackend();
-}, []);
   const loadBlockchainData = async () => {
-    try {
-      if (!window.ethereum) {
-        console.error("Please install MetaMask");
-        return;
-      }
-      const prov = new ethers.providers.Web3Provider(window.ethereum);
-      setProvider(prov);
-      const network = await prov.getNetwork();
-      console.log("Connected to network:", network.chainId);
-      
-      // Get contract address from config.json
-      const chainId = network.chainId.toString();
-      const contractAddress = contractConfig[chainId]?.nft?.address;
-      
-      if (!contractAddress) {
-        console.error(`No contract address found for chain ID ${chainId}`);
-        return;
-      }
-      
-      const nftContract = new ethers.Contract(contractAddress, NFT, prov);
-      setNFT(nftContract);
-      console.log("NFT contract loaded:", contractAddress);
-    } catch (err) { 
-      console.error("Blockchain loading error:", err); 
-    }
-  };
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    setProvider(provider)
 
-  useEffect(() => { 
-    loadBlockchainData(); 
-  }, [BACKEND_URL]);
+    const network = await provider.getNetwork()
 
-  // --------------- REGISTER ----------------
-  const handleRegister = async () => {
-    if (!/^[A-Za-z]+$/.test(name)) return alert("Name must contain only letters");
-    if (password.length < 8 || !/[0-9]/.test(password) || password[0] !== password[0].toUpperCase()) {
-      return alert("Password must start uppercase, include number, min 8 chars");
-    }
-    try {
-      console.log("Registering at:", `${BACKEND_URL}/register`);
-      const res = await axios.post(`${BACKEND_URL}/register`, { name, email, password });
-      if (res.data.error) {
-        alert(res.data.error);
-      } else { 
-        alert("Registered successfully! Please login."); 
-        setIsSignup(false); 
-        setAuthMessage(""); 
-      }
-    } catch(err) { 
-      alert("Server error. Make sure backend is running at " + BACKEND_URL); 
-      console.error("Register error:", err); 
-    }
-  };
+    const nft = new ethers.Contract(config[network.chainId].nft.address, NFT, provider)
+    setNFT(nft)
+  }
 
-  // --------------- LOGIN ----------------
-  const handleLogin = async () => {
-    try {
-      console.log("Logging in at:", `${BACKEND_URL}/login`);
-      const res = await axios.post(`${BACKEND_URL}/login`, { email, password });
-      if (res.data.error) {
-        setAuthMessage(res.data.error);
-      } else {
-        setProfile({ name: res.data.name, email: res.data.email });
-        setIsLoggedIn(true);
-        fetchSavedImages(res.data.email);
-        setAuthMessage("");
-      }
-    } catch(err) { 
-      alert("Server error. Make sure backend is running at " + BACKEND_URL); 
-      console.error("Login error:", err); 
-    }
-  };
-
-  // --------------- FETCH IMAGES ----------------
-  const fetchSavedImages = async (userEmail) => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/images/${userEmail}`);
-      setSavedImages(res.data);
-    } catch(err){ console.error("Fetch images error:", err); }
-  };
-
-  // --------------- NFT GENERATOR ----------------
   const submitHandler = async (e) => {
-    e.preventDefault();
-    if (!description) return alert("Enter a description");
-    try {
-      setIsWaiting(true);
-      setMessage("Generating image...");
-      const imageData = await axios.post(`${BACKEND_URL}/generate`, { prompt: description });
-      setImage(imageData.data.image);
+    e.preventDefault()
 
-      setMessage("Uploading to IPFS...");
-      const nftstorage = new NFTStorage({ token: process.env.REACT_APP_NFT_STORAGE_API_KEY });
-      const metadata = await nftstorage.store({ 
-        name: description, 
-        description, 
-        image: imageData.data.image 
-      });
-      const url = metadata.url;
-      setURL(url);
-
-      setMessage("Minting NFT...");
-      await window.ethereum.request({ method: "eth_requestAccounts" });
-      const signer = provider.getSigner();
-      const connectedNFT = nft.connect(signer);
-      const tx = await connectedNFT.mint(url, { value: ethers.utils.parseEther("0.01") });
-      await tx.wait();
-      setMessage("NFT Minted 🎉");
-
-      await axios.post(`${BACKEND_URL}/save_image`, { 
-        email: profile.email, 
-        image_path: imageData.data.image 
-      });
-      fetchSavedImages(profile.email);
-    } catch(err) { 
-      console.error("NFT generation error:", err); 
-      alert("NFT generation failed: " + err.message); 
-    } finally { 
-      setIsWaiting(false); 
-      setMessage(""); 
+    if (name === "" || description === "") {
+      window.alert("Please provide a name and description")
+      return
     }
-  };
 
-  // --------------- LOGIN/SIGNUP FORM ----------------
-  if (!isLoggedIn) {
-    return (
-      <div style={{display:"flex", justifyContent:"center", alignItems:"center", height:"100vh", background:"#e6f0ff"}}>
-        <div style={{background:"#fff", padding:"40px", borderRadius:"10px", boxShadow:"0px 0px 15px rgba(0,0,0,0.2)", width:"360px"}}>
-          {isSignup ? (
-            <>
-              <h2 style={{textAlign:"center"}}>Signup</h2>
-              <input style={inputStyle} placeholder="Name" value={name} onChange={e=>setName(e.target.value)}/>
-              <input style={inputStyle} type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-              <input style={inputStyle} type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
-              <button style={buttonStyle} onClick={handleRegister}>Register</button>
-              <p style={{textAlign:"center"}}>Already have account? <span style={{color:"#007bff", cursor:"pointer"}} onClick={()=>{setIsSignup(false); setAuthMessage("")}}>Login</span></p>
-            </>
+    setIsWaiting(true)
+
+    // Call AI API to generate a image based on description
+    const imageData = await createImage()
+
+    // Upload image to IPFS (NFT.Storage)
+    const url = await uploadImage(imageData)
+
+    // Mint NFT
+    await mintImage(url)
+
+    setIsWaiting(false)
+    setMessage("")
+  }
+
+  const createImage = async () => {
+    setMessage("Generating Image...")
+
+    // You can replace this with different model API's
+    const URL = `https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2`
+
+    // Send the request
+    const response = await axios({
+      url: URL,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.REACT_APP_HUGGING_FACE_API_KEY}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      data: JSON.stringify({
+        inputs: description, options: { wait_for_model: true },
+      }),
+      responseType: 'arraybuffer',
+    })
+
+    const type = response.headers['content-type']
+    const data = response.data
+
+    const base64data = Buffer.from(data).toString('base64')
+    const img = `data:${type};base64,` + base64data // <-- This is so we can render it on the page
+    setImage(img)
+
+    return data
+  }
+
+  const uploadImage = async (imageData) => {
+    setMessage("Uploading Image...")
+
+    // Create instance to NFT.Storage
+    const nftstorage = new NFTStorage({ token: process.env.REACT_APP_NFT_STORAGE_API_KEY })
+
+    // Send request to store image
+    const { ipnft } = await nftstorage.store({
+      image: new File([imageData], "image.jpeg", { type: "image/jpeg" }),
+      name: name,
+      description: description,
+    })
+
+    // Save the URL
+    const url = `https://ipfs.io/ipfs/${ipnft}/metadata.json`
+    setURL(url)
+
+    return url
+  }
+
+  const mintImage = async (tokenURI) => {
+    setMessage("Waiting for Mint...")
+
+    const signer = await provider.getSigner()
+    const transaction = await nft.connect(signer).mint(tokenURI, { value: ethers.utils.parseUnits("1", "ether") })
+    await transaction.wait()
+  }
+
+  useEffect(() => {
+    loadBlockchainData()
+  }, [])
+
+  return (
+    <div>
+      <Navigation account={account} setAccount={setAccount} />
+
+      <div className='form'>
+        <form onSubmit={submitHandler}>
+          <input type="text" placeholder="Create a name..." onChange={(e) => { setName(e.target.value) }} />
+          <input type="text" placeholder="Create a description..." onChange={(e) => setDescription(e.target.value)} />
+          <input type="submit" value="Create & Mint" />
+        </form>
+
+        <div className="image">
+          {!isWaiting && image ? (
+            <img src={image} alt="AI generated image" />
+          ) : isWaiting ? (
+            <div className="image__placeholder">
+              <Spinner animation="border" />
+              <p>{message}</p>
+            </div>
           ) : (
-            <>
-              <h2 style={{textAlign:"center"}}>Login</h2>
-              <input style={inputStyle} type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-              <input style={inputStyle} type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
-              <button style={buttonStyle} onClick={handleLogin}>Login</button>
-              {authMessage && <p style={{color:"red", textAlign:"center"}}>{authMessage}</p>}
-              <p style={{textAlign:"center"}}>New user? <span style={{color:"#007bff", cursor:"pointer"}} onClick={()=>{setIsSignup(true); setAuthMessage("")}}>Signup</span></p>
-            </>
+            <></>
           )}
         </div>
       </div>
-    );
-  }
 
-  // --------------- DASHBOARD ----------------
-  return (
-    <div style={{padding:"20px"}}>
-      <Navigation account={account} setAccount={setAccount}/>
-      <h2>Welcome, {profile.name}</h2>
-      <form onSubmit={submitHandler}>
-        <input type="text" placeholder="Describe your NFT..." value={description} onChange={e=>setDescription(e.target.value)}/>
-        <input type="submit" value="Generate & Mint" />
-      </form>
-      <div>
-        {isWaiting ? <Spinner animation="border" /> : image ? <img src={image} alt="NFT artwork" style={{maxWidth:"300px"}}/> : null}
-      </div>
-      <h3>Saved Images</h3>
-      <div style={{display:"flex", gap:"10px", flexWrap:"wrap"}}>
-        {savedImages.map((img, idx)=><img key={idx} src={img.image_path} alt="saved" style={{width:"100px", borderRadius:"5px"}}/>)}
-      </div>
+      {!isWaiting && url && (
+        <p>
+          View&nbsp;<a href={url} target="_blank" rel="noreferrer">Metadata</a>
+        </p>
+      )}
     </div>
   );
 }
-
-const inputStyle = { width:"100%", padding:"10px", margin:"10px 0", borderRadius:"5px", border:"1px solid #ccc" };
-const buttonStyle = { width:"100%", padding:"10px", margin:"10px 0", borderRadius:"5px", border:"none", background:"#007bff", color:"#fff", cursor:"pointer" };
 
 export default App;
