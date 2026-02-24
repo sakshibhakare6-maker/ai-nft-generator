@@ -1,36 +1,38 @@
-/* eslint-disable no-unused-vars */
-//import { useState } from "react";
-import React from 'react';
-const Navigation = ({ account, setAccount }) => {
+import { ethers } from 'ethers';
 
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      alert("Install MetaMask");
-      return;
+const Navigation = ({ account, setAccount }) => {
+    const connectHandler = async () => {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const account = ethers.utils.getAddress(accounts[0])
+        setAccount(account);
     }
 
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
+    return (
+        <nav>
+            <div className='nav__brand'>
+                <h1>AI NFT Generator</h1>
+            </div>
 
-    setAccount(accounts[0]);
-  };
+            {account ? (
+                <button
+                    type="button"
+                    className='nav__connect'
+                >
+                    {account.slice(0, 6) + '...' + account.slice(38, 42)}
+                </button>
+            ) : (
+                <button
+                    type="button"
+                    className='nav__connect'
+                    onClick={connectHandler}
+                >
+                    Connect
+                </button>
+            )}
+        </nav>
+    );
+}
 
-  return (
-    <nav>
-      <h1>AI NFT Generator</h1>
-
-      {account ? (
-        <button className="connect">
-          {account.slice(0, 6) + "..." + account.slice(38, 42)}
-        </button>
-      ) : (
-        <button onClick={connectWallet} className="connect">
-          Connect Wallet
-        </button>
-      )}
-    </nav>
-  );
-};
+export default Navigation;
 
 export default Navigation;
