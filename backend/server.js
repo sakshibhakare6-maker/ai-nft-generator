@@ -28,7 +28,6 @@ app.get('/', (req, res) => {
       '/save_image - POST'
     ]
   });
-});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
